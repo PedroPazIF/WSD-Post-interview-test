@@ -1,5 +1,5 @@
 <?php
-function calculateTotalTime($queue, $numberTaps, $walkingTime /*Bonus 2*/, $flow /*Bonus 3 */) {
+function calculateTotalTime($queue, $numberTaps, $walkingTime /*BONUS 2*/, $flow /*BONUS 3*/) {
     $queue = explode(';', $queue);
     $queueSize = count($queue);
 
@@ -7,14 +7,27 @@ function calculateTotalTime($queue, $numberTaps, $walkingTime /*Bonus 2*/, $flow
     $time = 0;
     $tapTimes = array_fill(0, $numberTaps, 0);
 
-    for($i = 0; $i < $queueSize; $i++){
+    for ($i = 0; $i < $queueSize; $i++) {
         $tapIndex = $i % $numberTaps;
         $flowIndex = $tapIndex % count($flow);
         $personTime = $queue[$i] / $flow[$flowIndex];
+
+        if ($i >= $numberTaps) {
+            $minTapTime = min($tapTimes);
+            $minTapIndex = array_search($minTapTime, $tapTimes);
+
+            if ($minTapTime + $personTime > $tapTimes[$tapIndex]) {
+                $tapIndex = $minTapIndex;
+                $flowIndex = $tapIndex % count($flow);
+                $flowRate = $flow[$flowIndex];
+                $personTime = $queue[$i] / $flowRate;
+            }
+        }
+
         $tapTimes[$tapIndex] += $personTime;
         $time = max($time, $tapTimes[$tapIndex]);
-        
     }
+
     $time += $walkingTime * $queueSize;
     return $time;
 }
@@ -22,27 +35,43 @@ function calculateTotalTime($queue, $numberTaps, $walkingTime /*Bonus 2*/, $flow
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $queueInput = $_POST['queue'];
     $numberTaps = $_POST['numberTaps'];
-    $flow = [50,200];
+    $flow = [50, 200];
 
     $totalTime = calculateTotalTime($queueInput, $numberTaps, 5, $flow);
-    echo "<b>Total time required:</b> ". number_format($totalTime, 1, ',', '')." seconds";
+    echo "<b>Total time required:</b> " . number_format($totalTime, 1, ',', '') . " seconds";
 
     echo "<br><br><b>Time required for each person to fill their bottle according to its size:</b> <br>";
     $queue = explode(';', $queueInput);
+
+    $tapTimes = array_fill(0, $numberTaps, 0);
 
     for ($i = 0; $i < count($queue); $i++) {
         $tapIndex = $i % $numberTaps;
         $flowIndex = $tapIndex % count($flow);
         $flowRate = $flow[$flowIndex];
+
+        if ($i >= $numberTaps) {
+            $minTapTime = min($tapTimes);
+            $minTapIndex = array_search($minTapTime, $tapTimes);
+
+            if ($minTapTime + ($queue[$i] / $flowRate) > $tapTimes[$tapIndex]) {
+                $tapIndex = $minTapIndex;
+                $flowIndex = $tapIndex % count($flow);
+                $flowRate = $flow[$flowIndex];
+            }
+        }
+
         $personTime = $queue[$i] / $flowRate;
-        echo "<b>Person " . ($i + 1) . " take :</b>". number_format($personTime, 1, ',', '')." seconds<br>";
+        $tapTimes[$tapIndex] += $personTime;
+
+        echo "<b>Person " . ($i + 1) . " take :</b>". number_format($personTime, 1, ',', '') . " seconds<br>";
     }
 }
 ?>
 
 
 <!-- 
-Bonus 4) Faster taps, slower time
+BONUS 4) Faster taps, slower time.
 
 Considering that the defined flow is $flow = [50, 200], if I test the queue of 500ml; 2000ml with two taps, the result would be:
 
@@ -92,7 +121,7 @@ increasing the flow of tap 2 also reduced the time taken by Person 2 from the de
 <body>
 
     <form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
-    <!-- Bonus 1 below -->
+    <!-- BONUS 1 BELOW -->
         <label for="queue"> Enter the queue of people by inputting the amount of water in mililitres in their bottle (separate the values by semicolon): </label><br>
         <input type="text" id="queue" name="queue" placeholder="Ex: 400;750;1000" oninput="this.value = this.value.replace(/[^0-9;]/g, '');"  required><br><br>
 
@@ -107,5 +136,5 @@ increasing the flow of tap 2 also reduced the time taken by Person 2 from the de
 <style>
     form{
         margin-top: 100px;
-    }
+        }
 </style>
