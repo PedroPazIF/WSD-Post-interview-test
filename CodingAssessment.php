@@ -1,41 +1,54 @@
 <?php
-function calculateTotalTime($queue, $numberTaps, $walkingTime) {
+function calculateTotalTime($queue, $numberTaps, $walkingTime, $flow) {
     $queue = explode(';', $queue);
     $queueSize = count($queue);
-    $maxTime = max($queue) / 100;
+    
 
     $numberTaps = min($numberTaps, $queueSize);
 
     $time = 0;
+    // $batches = array_chunk($queue, $numberTaps);
+    
+
     for($i = 0; $i < $queueSize; $i += $numberTaps){
         $batch = array_slice($queue, $i, $numberTaps);
-        $maxBatchTime = max($batch) / 100;
         
+        $maxBatchTime = 0;
+    //  foreach ($batches as $batch){
+    //     $maxBatchTime = 0;
+        foreach ($batch as $index => $bottle) {
+            $tapIndex = $index % count($flow);
+            $flowRate = $flow[$tapIndex];
+            $personTime = ($bottle / $flowRate);
+            $maxBatchTime = max($maxBatchTime, $personTime);
+        }
         
-        $time += $walkingTime *$numberTaps;
+        $time += $walkingTime * $numberTaps;
 
         $time += $maxBatchTime;
     }
 
-    return ceil($time);
+    return ($time);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Processar o formulário quando for enviado
     $queueInput = $_POST['queue'];
     $numberTaps = $_POST['numberTaps'];
+    $flow = [50, 200];
 
     // Chamar a função calcularTempoTotal
-    $totalTime = calculateTotalTime($queueInput, $numberTaps, 5);
-    echo "<b>Total time required:</b> $totalTime seconds";
+    $totalTime = calculateTotalTime($queueInput, $numberTaps, 5, $flow);
+    echo "<b>Total time required:</b> ". number_format($totalTime, 1, ',', '')." seconds";
 
     echo "<br><br><b>Time required for each person to fill their bottle according to its size:</b> <br>";
     $queue = explode(';', $queueInput);
 
     foreach ($queue as $index => $bottle) {
-        $personTime = ceil($bottle / 100);
-        echo "<b>Person " . ($index + 1) . " take :</b> $personTime seconds<br>";       
-        
+        $tapIndex = $index % count($flow);
+        $flowRate = $flow[$tapIndex];
+        $personTime = $bottle / $flowRate;
+        echo "<b>Person " . ($index + 1) . " take :</b>". number_format($personTime, 1, ',', '')." seconds<br>";
     }
 }
 ?>
